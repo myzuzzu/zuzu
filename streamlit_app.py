@@ -82,3 +82,5 @@ while True:
 
     st.write("Score: ", st.session_state.score)
     st.experimental_rerun()
+
+  
