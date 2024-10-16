@@ -4,17 +4,21 @@ import random
 import time
 
 # Game settings
-GRID_SIZE = 10
+GRID_SIZE = 20
 INITIAL_SNAKE_LENGTH = 3
 
 # Initialize the game state
 def initialize_game():
     snake = [(0, i) for i in range(INITIAL_SNAKE_LENGTH)]
     direction = (0, 1)  # Start moving to the right
+    food = place_food(snake)
+    return snake, direction, food
+
+def place_food(snake):
     food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
     while food in snake:
         food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-    return snake, direction, food
+    return food
 
 # Draw the game grid
 def draw_grid(snake, food):
@@ -35,6 +39,13 @@ def update_snake(snake, direction):
 def check_collision(snake, food):
     return snake[0] == food
 
+# Check for game over conditions
+def check_game_over(snake):
+    head_x, head_y = snake[0]
+    return (head_x < 0 or head_x >= GRID_SIZE or
+            head_y < 0 or head_y >= GRID_SIZE or
+            len(snake) != len(set(snake)))
+
 # Streamlit app
 st.title("Snake Game")
 
@@ -42,6 +53,7 @@ st.title("Snake Game")
 if 'snake' not in st.session_state:
     st.session_state.snake, st.session_state.direction, st.session_state.food = initialize_game()
     st.session_state.score = 0
+    st.session_state.game_over = False
 
 # User controls
 if st.button("Up"):
@@ -54,7 +66,7 @@ if st.button("Right"):
     st.session_state.direction = (0, 1)
 
 # Game loop
-while True:
+if not st.session_state.game_over:
     time.sleep(0.2)  # Control the speed of the game
 
     # Update the snake
@@ -63,24 +75,24 @@ while True:
     # Check for collisions with food
     if check_collision(st.session_state.snake, st.session_state.food):
         st.session_state.score += 1
-        st.session_state.food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-        while st.session_state.food in st.session_state.snake:
-            st.session_state.food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+        st.session_state.food = place_food(st.session_state.snake)
     else:
         st.session_state.snake.pop()  # Remove the tail if no food eaten
 
-    # Check for collisions with walls or self
-    head_x, head_y = st.session_state.snake[0]
-    if (head_x < 0 or head_x >= GRID_SIZE or head_y < 0 or head_y >= GRID_SIZE or
-            len(st.session_state.snake) != len(set(st.session_state.snake))):
-        st.write("Game Over! Score: ", st.session_state.score)
-        break
+    # Check for game over
+    if check_game_over(st.session_state.snake):
+        st.session_state.game_over = True
 
     # Draw the game grid
     grid = draw_grid(st.session_state.snake, st.session_state.food)
     st.write(grid)
-
     st.write("Score: ", st.session_state.score)
-    st.experimental_rerun()
+else:
+    st.write("Game Over! Your Score: ", st.session_state.score)
+    if st.button("Restart"):
+        st.session_state.snake, st.session_state.direction, st.session_state.food = initialize_game()
+        st.session_state.score = 0
+        st.session_state.game_over = False
+
 
   
