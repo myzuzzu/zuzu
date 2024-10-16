@@ -1,98 +1,57 @@
 import streamlit as st
 import numpy as np
 import random
-import time
 
 # Game settings
-GRID_SIZE = 20
-INITIAL_SNAKE_LENGTH = 3
+GRID_SIZE = 5
+NUM_CATS = 3
 
 # Initialize the game state
 def initialize_game():
-    snake = [(0, i) for i in range(INITIAL_SNAKE_LENGTH)]
-    direction = (0, 1)  # Start moving to the right
-    food = place_food(snake)
-    return snake, direction, food
-
-def place_food(snake):
-    food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-    while food in snake:
-        food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-    return food
+    cats = []
+    for _ in range(NUM_CATS):
+        cat_position = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+        while cat_position in cats:
+            cat_position = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+        cats.append(cat_position)
+    return cats
 
 # Draw the game grid
-def draw_grid(snake, food):
-    grid = np.zeros((GRID_SIZE, GRID_SIZE))
-    for (x, y) in snake:
-        grid[x, y] = 1  # Snake body
-    grid[food] = 2  # Food
-    return grid
-
-# Update the snake position
-def update_snake(snake, direction):
-    head_x, head_y = snake[0]
-    new_head = (head_x + direction[0], head_y + direction[1])
-    snake.insert(0, new_head)
-    return snake
-
-# Check for collisions
-def check_collision(snake, food):
-    return snake[0] == food
-
-# Check for game over conditions
-def check_game_over(snake):
-    head_x, head_y = snake[0]
-    return (head_x < 0 or head_x >= GRID_SIZE or
-            head_y < 0 or head_y >= GRID_SIZE or
-            len(snake) != len(set(snake)))
+def draw_grid(cats, score):
+    grid = np.zeros((GRID_SIZE, GRID_SIZE), dtype=str)
+    for (x, y) in cats:
+        grid[x, y] = "🐱"  # Cat emoji
+    grid_string = "\n".join(" ".join(row) for row in grid)
+    return grid_string
 
 # Streamlit app
-st.title("Snake Game")
+st.title("Catch the Cats Game")
 
 # Initialize game state
-if 'snake' not in st.session_state:
-    st.session_state.snake, st.session_state.direction, st.session_state.food = initialize_game()
+if 'cats' not in st.session_state:
+    st.session_state.cats = initialize_game()
     st.session_state.score = 0
-    st.session_state.game_over = False
 
-# User controls
-if st.button("Up"):
-    st.session_state.direction = (-1, 0)
-if st.button("Down"):
-    st.session_state.direction = (1, 0)
-if st.button("Left"):
-    st.session_state.direction = (0, -1)
-if st.button("Right"):
-    st.session_state.direction = (0, 1)
+# Display the grid
+grid_string = draw_grid(st.session_state.cats, st.session_state.score)
+st.write(grid_string)
 
-# Game loop
-if not st.session_state.game_over:
-    time.sleep(0.2)  # Control the speed of the game
+# User interaction
+selected_cat = st.selectbox("Select a cat position to catch:", [(i, j) for i in range(GRID_SIZE) for j in range(GRID_SIZE)])
 
-    # Update the snake
-    st.session_state.snake = update_snake(st.session_state.snake, st.session_state.direction)
-
-    # Check for collisions with food
-    if check_collision(st.session_state.snake, st.session_state.food):
+if st.button("Catch Cat"):
+    if selected_cat in st.session_state.cats:
+        st.session_state.cats.remove(selected_cat)
         st.session_state.score += 1
-        st.session_state.food = place_food(st.session_state.snake)
+        st.success("Cat caught! 🎉")
     else:
-        st.session_state.snake.pop()  # Remove the tail if no food eaten
+        st.error("No cat at that position! 😿")
 
-    # Check for game over
-    if check_game_over(st.session_state.snake):
-        st.session_state.game_over = True
-
-    # Draw the game grid
-    grid = draw_grid(st.session_state.snake, st.session_state.food)
-    st.write(grid)
-    st.write("Score: ", st.session_state.score)
-else:
-    st.write("Game Over! Your Score: ", st.session_state.score)
-    if st.button("Restart"):
-        st.session_state.snake, st.session_state.direction, st.session_state.food = initialize_game()
+# Check for game end
+if len(st.session_state.cats) == 0:
+    st.write("All cats caught! Your score: ", st.session_state.score)
+    if st.button("Restart Game"):
+        st.session_state.cats = initialize_game()
         st.session_state.score = 0
-        st.session_state.game_over = False
-
 
   
